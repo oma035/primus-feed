@@ -12,7 +12,7 @@ const sample = `{
     "taskId": "0x…", "attestor": "0x…", "signature": "0x…",
     "reportTxHash": "0x…", "attestorUrl": "…phala.network",
     "timestamp": 0, "attestationTimeMs": 0, "chainId": 84532,
-    "data": { "btcPrice": "…", "btcPrice.count": "1", "ethPrice": "…", "solPrice": "…" }
+    "data": { "btcPrice": "…", "ethPrice": "…", "solPrice": "…" }
   }
 }`;
 const py = `import requests
@@ -59,7 +59,7 @@ export default function Docs() {
       </ol>
 
       <H>Freshness &amp; caching</H>
-      <p className="mt-3 text-sm">Each attestation costs a small on-chain fee, so one is reused for <code>FEED_CACHE_TTL_SECONDS</code> (default 300s). Responses are edge-cached for 60s. A Vercel cron hits <code>/api/cron</code> to warm a fresh attestation.</p>
+      <p className="mt-3 text-sm">Each attestation costs a small on-chain fee, so one is reused for <code>FEED_CACHE_TTL_SECONDS</code> (default 300s). Responses are edge-cached until the snapshot&apos;s <code>cachedUntil</code>, so all callers share one attestation. A daily Vercel cron (06:00 UTC) hits <code>/api/cron</code>, which requires the <code>CRON_SECRET</code> bearer token.</p>
     </main>
   );
 }

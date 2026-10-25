@@ -1,4 +1,5 @@
-import { getFeed } from "@/lib/feed";
+import { headers } from "next/headers";
+import { getFeed, type Feed } from "@/lib/feed";
 import { chainName, explorerTx } from "@/lib/config";
 import StatusBadge from "@/components/StatusBadge";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -10,8 +11,20 @@ const fmt = (n: number | null) =>
   n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 10 ? 4 : 2 });
 const short = (s?: string) => (s ? `${s.slice(0, 10)}…${s.slice(-6)}` : "—");
 
+// Read through our own CDN-cached /api/feed so page views never trigger extra attestations.
+async function loadFeed(): Promise<Feed> {
+  const h = headers();
+  const host = h.get("x-forwarded-host") || h.get("host");
+  const proto = h.get("x-forwarded-proto") || "https";
+  try {
+    const r = await fetch(`${proto}://${host}/api/feed`, { cache: "no-store", signal: AbortSignal.timeout(58_000) });
+    if (r.ok) return (await r.json()) as Feed;
+  } catch {}
+  return getFeed();
+}
+
 export default async function Dashboard() {
-  const feed = await getFeed();
+  const feed = await loadFeed();
   const a = feed.attestation;
   return (
     <main className="relative mx-auto max-w-6xl overflow-x-hidden px-5 py-10">

@@ -7,9 +7,12 @@ export const maxDuration = 60;
 
 export async function GET() {
   const feed = await getFeed();
+  // Let Vercel's CDN serve this snapshot until it expires, so every instance/viewer
+  // shares one attestation instead of each re-attesting (each costs gas + fee).
+  const ttl = Math.max(5, Math.floor((feed.cachedUntil - Date.now()) / 1000));
   return NextResponse.json(feed, {
     headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=240",
+      "Cache-Control": `public, s-maxage=${ttl}, stale-while-revalidate=60`,
       "Access-Control-Allow-Origin": "*",
       "X-Proof-Status": feed.proofStatus,
     },

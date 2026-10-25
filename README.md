@@ -25,9 +25,9 @@ No proof hash is ever invented.
 
 ### Caching / Vercel limits
 - Each attestation is an on-chain task (it costs fees and takes about 10–30s). Results are cached in memory for `FEED_CACHE_TTL_SECONDS` (default 300). Concurrent requests share one in-flight attestation.
-- `/api/feed` responses are edge-cached (`s-maxage=60, stale-while-revalidate=240`).
+- `/api/feed` is edge-cached until `cachedUntil` (`s-maxage` = seconds left), and `/dashboard` reads through that cached endpoint, so all viewers and instances share one attestation per TTL.
 - Functions use `maxDuration = 60`, and the child process is killed after 55s.
-- `vercel.json` sets a cron that warms `/api/cron` every 6 hours. On the Hobby plan crons can only run once a day, so change it to `0 0 * * *` there.
+- `vercel.json` runs a daily cron (`0 6 * * *`, works on Hobby) that warms `/api/cron`; set `CRON_SECRET` so only Vercel can call it.
 - The in-memory cache is per serverless instance. For a shared cache, add Vercel KV or Upstash.
 
 ## Setup
