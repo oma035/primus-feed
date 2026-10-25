@@ -36,6 +36,7 @@ export interface Feed {
   points: DataPoint[];
   attestation: Attestation | null;
   error?: string;
+  wallet?: string;
 }
 
 let cache: Feed | null = null;
@@ -77,9 +78,15 @@ function runAttestation(payload: object): Promise<unknown> {
     child.on("close", () => {
       clearTimeout(timer);
       const line = stdout.split("\n").find((l) => l.startsWith("@@RESULT@@"));
-      if (!line) return reject(new Error(`Attestor process gave no result. ${stderr.slice(-200)}`));
+      if (!line) {
+        const key = stderr.split("\n").find((l) => /Error|Cannot find/.test(l)) || stderr.slice(-200);
+        return reject(new Error(`Attestor process crashed: ${key.trim()}`));
+      }
       const msg = JSON.parse(line.slice(10));
-      return msg.ok ? resolve(msg.result) : reject(new Error(msg.error));
+      if (msg.ok) return resolve(msg.result);
+      const err: any = new Error(msg.error);
+      err.wallet = msg.address;
+      return reject(err);
     });
     child.stdin.end(JSON.stringify(payload));
   });
@@ -130,14 +137,21 @@ async function attestedFeed(): Promise<Feed> {
   };
 }
 
-async function demoFeed(error?: string): Promise<Feed> {
+function hintFor(error: string, wallet?: string): string {
+  if (/insufficient (balance|funds)/i.test(error))
+    return `Attestation wallet${wallet ? ` ${wallet}` : ""} has no Base Sepolia ETH to pay the Primus task fee + gas. Fund it from a faucet (e.g. alchemy.com/faucets/base-sepolia), then refresh. Prices below are real but unverified.`;
+  if (/timed out/i.test(error)) return "The Primus attestor took too long (>55s). Prices below are real but unverified; it will retry automatically.";
+  return "Attestation failed, so these prices are served unverified. Do not treat them as proven.";
+}
+
+async function demoFeed(error?: string, wallet?: string): Promise<Feed> {
   const now = Date.now();
   const failed = Boolean(error);
   return {
     mode: failed ? "live" : "demo",
     proofStatus: failed ? "failed" : "unverified-demo",
     proofNote: failed
-      ? "Attestation failed, so these prices are served unverified. Do not treat them as proven."
+      ? hintFor(error!, wallet)
       : "Demo mode: real prices fetched directly from OKX, but NOT attested. No proof exists for these values.",
     source: SOURCE,
     generatedAt: now,
@@ -145,6 +159,7 @@ async function demoFeed(error?: string): Promise<Feed> {
     points: await plainPoints(),
     attestation: null,
     ...(error ? { error } : {}),
+    ...(wallet ? { wallet } : {}),
   };
 }
 
@@ -154,7 +169,7 @@ export async function buildFeed(): Promise<Feed> {
     return await attestedFeed();
   } catch (e: any) {
     console.error("[primus-feed] attestation failed", e);
-    return demoFeed(String(e?.message || e).slice(0, 300));
+    return demoFeed(String(e?.message || e).slice(0, 300), e?.wallet);
   }
 }
 

@@ -9,10 +9,12 @@ let input = "";
 process.stdin.on("data", (c) => (input += c));
 process.stdin.on("end", async () => {
   const out = (o) => process.stdout.write("\n@@RESULT@@" + JSON.stringify(o) + "\n");
+  let address;
   try {
     const { rpcUrl, chainId, requests, responseResolves } = JSON.parse(input);
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
     const wallet = new ethers.Wallet(process.env.PRIMUS_PRIVATE_KEY, provider);
+    address = wallet.address;
     const primus = new PrimusNetwork();
     await primus.init(wallet, chainId);
     const submitParams = { address: wallet.address };
@@ -21,7 +23,7 @@ process.stdin.on("end", async () => {
     out({ ok: true, result });
     process.exit(0);
   } catch (e) {
-    out({ ok: false, error: String((e && (e.message || e.code)) || e) });
+    out({ ok: false, address, error: String((e && (e.message || e.code)) || e) });
     process.exit(1);
   }
 });
