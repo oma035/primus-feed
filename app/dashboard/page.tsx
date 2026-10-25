@@ -14,7 +14,7 @@ export default async function Dashboard() {
   const feed = await getFeed();
   const a = feed.attestation;
   return (
-    <main className="relative mx-auto max-w-6xl px-5 py-10">
+    <main className="relative mx-auto max-w-6xl overflow-x-hidden px-5 py-10">
       <div className="glow pointer-events-none absolute inset-0 -z-10" />
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
@@ -29,15 +29,15 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      <div className={`mt-6 rounded-xl border p-4 text-sm ${feed.proofStatus === "verified" ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-200" : feed.proofStatus === "failed" ? "border-rose-400/20 bg-rose-400/5 text-rose-200" : "border-amber-400/20 bg-amber-400/5 text-amber-200"}`}>
+      <div className={`mt-6 break-words rounded-xl border p-4 text-sm [overflow-wrap:anywhere] ${feed.proofStatus === "verified" ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-200" : feed.proofStatus === "failed" ? "border-rose-400/20 bg-rose-400/5 text-rose-200" : "border-amber-400/20 bg-amber-400/5 text-amber-200"}`}>
         {feed.proofNote}
         {feed.error && <div className="mt-1 font-mono text-xs opacity-70">error: {feed.error}</div>}
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {feed.points.map((p) => (
-          <div key={p.symbol} className="card p-5">
-            <div className="flex items-center justify-between">
+          <div key={p.symbol} className="card min-w-0 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-xs font-semibold text-white">{p.symbol}</span>
                 <span className="font-mono text-xs text-zinc-500">{p.pair}</span>
@@ -46,8 +46,8 @@ export default async function Dashboard() {
             </div>
             <div className="mt-5 text-3xl font-semibold tracking-tight text-white tabular-nums">{fmt(p.price)}</div>
             <div className="mt-4 space-y-1 border-t border-white/5 pt-3 font-mono text-[11px] text-zinc-500">
-              <div className="flex justify-between"><span>proof</span><span className={a ? "text-emerald-300" : "text-amber-300"}>{a ? short(a.signature) : "none (unverified)"}</span></div>
-              <div className="flex justify-between"><span>observed</span><span>{new Date(p.fetchedAt).toISOString().slice(11, 19)} UTC</span></div>
+              <div className="flex justify-between gap-3"><span>proof</span><span className={a ? "text-emerald-300" : "text-amber-300"}>{a ? short(a.signature) : "none"}</span></div>
+              <div className="flex justify-between gap-3"><span>observed</span><span>{new Date(p.fetchedAt).toISOString().slice(11, 19)} UTC</span></div>
               <a href={p.sourceUrl} target="_blank" className="block truncate text-zinc-600 hover:text-zinc-300">{p.sourceUrl.replace("https://", "")}</a>
             </div>
           </div>
